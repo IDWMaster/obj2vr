@@ -165,9 +165,7 @@ int main(int argc, char** argv) {
 	  vertex.y = readFloat();
 	  readWhitespace();
 	  vertex.z = readFloat();
-	  if(vertex.x < 0) {
-	    printf("Negative X\n");
-	  }
+	  
 	  current.verts.push_back(vertex);
 	  
 	}
