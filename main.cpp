@@ -1,4 +1,3 @@
-#include "cppext/cppext.h"
 #include <vector>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -221,6 +220,8 @@ int main(int argc, char** argv) {
   munmap(mander,us.st_size);
   close(fd);
   fd = open(argv[2],O_CREAT | O_RDWR,S_IRUSR | S_IWUSR);
+  unsigned char version = 0;
+  write(fd,&version,1);
   for(auto bot = meshes.begin();bot != meshes.end();bot++) {
     uint16_t size = bot->first.size();
     write(fd,&size,sizeof(size));
