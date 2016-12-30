@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
     case 'v':
     {
       unsigned char n = *ptr;
-      ptr++;
+      
       readWhitespace();
       switch(n) {
 	case 't':
@@ -165,6 +165,9 @@ int main(int argc, char** argv) {
 	  vertex.y = readFloat();
 	  readWhitespace();
 	  vertex.z = readFloat();
+	  if(vertex.x < 0) {
+	    printf("Negative X\n");
+	  }
 	  current.verts.push_back(vertex);
 	  
 	}
