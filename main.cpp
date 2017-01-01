@@ -46,21 +46,33 @@ public:
 
 static void recursiveWriteModels(aiNode* node, const aiScene* scene, int fd) {
   
+  uint16_t size = node->mName.length;
+    printf("Converting model %s\n",node->mName.data);
+    
+    
+    write(fd,&size,sizeof(size));
+    write(fd,node->mName.data,size);
+  
+  unsigned char op = 1;
+  write(fd,&op,1);
+  aiMatrix4x4 transform = node->mTransformation.Transpose();   
+  write(fd,&transform,sizeof(transform));
   for(size_t i = 0;i<node->mNumMeshes;i++) {
+    
+    
     aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
     
     
     uint16_t size = mesh->mName.length;
-    printf("Converting %s\n",mesh->mName.data);
+    printf("Converting mesh %s\n",mesh->mName.data);
     
     
     size_t facecount = mesh->mNumFaces;
     write(fd,&size,sizeof(size));
     write(fd,mesh->mName.data,size);
+    op = 0;
+    write(fd,&op,1);
     
-    aiMatrix4x4 transform = node->mTransformation.Transpose();
-    
-    write(fd,&transform,sizeof(transform));
     uint32_t numverts = facecount*3; //Since we've triangulated; each face has 3 vertices.
     write(fd,&numverts,sizeof(numverts));
     auto faces = mesh->mFaces;
@@ -70,7 +82,7 @@ static void recursiveWriteModels(aiNode* node, const aiScene* scene, int fd) {
     
     for(size_t c = 0;c<facecount;c++ /*This is how C++ was invented*/) {
       if(faces[c].mNumIndices<3) {
-      printf("Face count = %i\n",faces[c].mNumIndices);
+      printf("Face count = %i. Attempting to correct. Model may not render properly. Please fix your model.\n",faces[c].mNumIndices);
     }
       for(size_t index = 0;index<3;index++) {
 	GPUVertexDefinition def;
@@ -93,6 +105,10 @@ static void recursiveWriteModels(aiNode* node, const aiScene* scene, int fd) {
   for(size_t i = 0;i<node->mNumChildren;i++) {
     recursiveWriteModels(node->mChildren[i],scene,fd);
   }
+  uint16_t noname = 0;
+  write(fd,&noname,sizeof(noname));
+  op = 2;
+  write(fd,&op,1);
 }
 
 
