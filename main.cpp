@@ -74,10 +74,17 @@ static void recursiveWriteModels(aiNode* node, const aiScene* scene, int fd) {
     }
       for(size_t index = 0;index<3;index++) {
 	GPUVertexDefinition def;
-	def.vert = verts[faces[c].mIndices[index]];
-	def.texcoord = aiVector2D(texcoords[0][faces[c].mIndices[index]].x,texcoords[0][faces[c].mIndices[index]].y);
-	def.normal = normals[faces[c].mIndices[index]];
+	if(index>=faces[c].mNumIndices) {
+	  def.vert = verts[faces[c].mIndices[0]];
+	  def.texcoord = aiVector2D(texcoords[0][faces[c].mIndices[0]].x,texcoords[0][faces[c].mIndices[0]].y);
+	  def.normal = normals[faces[c].mIndices[0]];
 	write(fd,&def,sizeof(def));
+	}else {
+	  def.vert = verts[faces[c].mIndices[index]];
+	  def.texcoord = aiVector2D(texcoords[0][faces[c].mIndices[index]].x,texcoords[0][faces[c].mIndices[index]].y);
+	  def.normal = normals[faces[c].mIndices[index]];
+	write(fd,&def,sizeof(def));
+	}
       }
     }
   }
