@@ -44,34 +44,21 @@ public:
   aiVector3D normal;
 };
 
-
-
-
-
-int main(int argc, char** argv) {
-  if(argc<3) {
-    printf("USAGE: %s [objfilename] [outfilename]\n",argv[0]);
-    return 0;
-  }
+static void recursiveWriteModels(aiNode* node, const aiScene* scene, int fd) {
   
-  struct stat us; //MAC == Status symbol
-  if(stat(argv[1],&us)) {
-    printf("Unable to open input file %s\n",argv[1]);
-    return -1;
-  }
-  Assimp::Importer importer;
-  auto scene = importer.ReadFile(argv[1],aiProcessPreset_TargetRealtime_MaxQuality);
-  
-  
-  int fd = open(argv[2],O_CREAT | O_RDWR,S_IRUSR | S_IWUSR);
-  ftruncate(fd,0);
-  unsigned char version = 0;
-  write(fd,&version,1);
-  for(size_t i = 0;i<scene->mNumMeshes;i++) {
-    auto mesh = scene->mMeshes[i];
+  for(size_t i = 0;i<node->mNumMeshes;i++) {
+    aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+    
+    
     uint16_t size = mesh->mName.length;
+    printf("Converting %s\n",mesh->mName.data);
     write(fd,&size,sizeof(size));
     write(fd,mesh->mName.data,size);
+    
+    aiMatrix4x4 transform = node->mTransformation.Transpose();
+    
+    write(fd,&transform,sizeof(transform));
+    
     size_t facecount = mesh->mNumFaces;
     uint32_t numverts = facecount*3; //Since we've triangulated; each face has 3 vertices.
     write(fd,&numverts,sizeof(numverts));
@@ -90,6 +77,37 @@ int main(int argc, char** argv) {
       }
     }
   }
+  
+  
+  for(size_t i = 0;i<node->mNumChildren;i++) {
+    recursiveWriteModels(node->mChildren[i],scene,fd);
+  }
+}
+
+
+
+int main(int argc, char** argv) {
+  if(argc<3) {
+    printf("USAGE: %s [objfilename] [outfilename]\n",argv[0]);
+    return 0;
+  }
+  
+  struct stat us; //MAC == Status symbol
+  if(stat(argv[1],&us)) {
+    printf("Unable to open input file %s\n",argv[1]);
+    return -1;
+  }
+  Assimp::Importer importer;
+  const aiScene* scene = importer.ReadFile(argv[1],aiProcessPreset_TargetRealtime_Quality);
+  
+  aiNode* root = scene->mRootNode;
+  
+  int fd = open(argv[2],O_CREAT | O_RDWR,S_IRUSR | S_IWUSR);
+  ftruncate(fd,0);
+  unsigned char version = 0;
+  write(fd,&version,1);
+  
+  recursiveWriteModels(root,scene,fd);
   close(fd);
   
 }
