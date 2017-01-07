@@ -78,7 +78,13 @@ static void recursiveWriteModels(aiNode* node, const aiScene* scene, int fd) {
     auto faces = mesh->mFaces;
     auto verts = mesh->mVertices;
     auto texcoords = mesh->mTextureCoords;
+    int numtexcoords = mesh->mNumUVComponents[0];
     auto normals = mesh->mNormals;
+    
+    if(numtexcoords == 0) {
+      printf("ERROR: No texture coordinates found. Please specify texture coordinates for mesh named %s in model %s\n",mesh->mName.data,node->mName.data);
+      exit(-1);
+    }
     
     for(size_t c = 0;c<facecount;c++ /*This is how C++ was invented*/) {
       if(faces[c].mNumIndices<3) {
