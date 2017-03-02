@@ -72,6 +72,14 @@ static void recursiveWriteModels(aiNode* node, const aiScene* scene, int fd) {
     write(fd,mesh->mName.data,size);
     op = 0;
     write(fd,&op,1);
+    int alignmentCorrection = (int)(lseek(fd,0,SEEK_CUR) % 4);
+    if(alignmentCorrection) {
+      alignmentCorrection = 4-(alignmentCorrection % 4);
+      //Pad with zeroes for alignment
+      int zeroes = 0;
+      write(fd,&zeroes,alignmentCorrection);
+    }
+    
     
     uint32_t numverts = facecount*3; //Since we've triangulated; each face has 3 vertices.
     write(fd,&numverts,sizeof(numverts));
@@ -137,7 +145,7 @@ int main(int argc, char** argv) {
   
   int fd = open(argv[2],O_CREAT | O_RDWR,S_IRUSR | S_IWUSR);
   ftruncate(fd,0);
-  unsigned char version = 0;
+  unsigned char version = 1;
   write(fd,&version,1);
   
   recursiveWriteModels(root,scene,fd);
