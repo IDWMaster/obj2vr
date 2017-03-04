@@ -44,7 +44,7 @@ public:
   aiVector3D normal;
 };
 
-static void recursiveWriteModels(aiNode* node, const aiScene* scene, int fd) {
+static void recursiveWriteModels(aiNode* node, const aiScene* scene, int fd, const aiMatrix4x4& parentTransform) {
   
   uint16_t size = node->mName.length;
     printf("Converting model %s\n",node->mName.data);
@@ -55,8 +55,8 @@ static void recursiveWriteModels(aiNode* node, const aiScene* scene, int fd) {
   
   unsigned char op = 1;
   write(fd,&op,1);
-  aiMatrix4x4 transform = node->mTransformation.Transpose();   
-  write(fd,&transform,sizeof(transform));
+  aiMatrix4x4 localTransform = parentTransform*node->mTransformation;
+  //write(fd,&transform,sizeof(transform));
   for(size_t i = 0;i<node->mNumMeshes;i++) {
     
     
@@ -101,12 +101,12 @@ static void recursiveWriteModels(aiNode* node, const aiScene* scene, int fd) {
       for(size_t index = 0;index<3;index++) {
 	GPUVertexDefinition def;
 	if(index>=faces[c].mNumIndices) {
-	  def.vert = verts[faces[c].mIndices[0]];
+	  def.vert = localTransform*verts[faces[c].mIndices[0]];
 	  def.texcoord = aiVector2D(texcoords[0][faces[c].mIndices[0]].x,texcoords[0][faces[c].mIndices[0]].y);
 	  def.normal = normals[faces[c].mIndices[0]];
 	write(fd,&def,sizeof(def));
 	}else {
-	  def.vert = verts[faces[c].mIndices[index]];
+	  def.vert = localTransform*verts[faces[c].mIndices[index]];
 	  def.texcoord = aiVector2D(texcoords[0][faces[c].mIndices[index]].x,texcoords[0][faces[c].mIndices[index]].y);
 	  def.normal = normals[faces[c].mIndices[index]];
 	write(fd,&def,sizeof(def));
@@ -116,8 +116,10 @@ static void recursiveWriteModels(aiNode* node, const aiScene* scene, int fd) {
   }
   
   
+  
+ 
   for(size_t i = 0;i<node->mNumChildren;i++) {
-    recursiveWriteModels(node->mChildren[i],scene,fd);
+    recursiveWriteModels(node->mChildren[i],scene,fd,localTransform);
   }
   uint16_t noname = 0;
   write(fd,&noname,sizeof(noname));
@@ -145,10 +147,10 @@ int main(int argc, char** argv) {
   
   int fd = open(argv[2],O_CREAT | O_RDWR,S_IRUSR | S_IWUSR);
   ftruncate(fd,0);
-  unsigned char version = 1;
+  unsigned char version = 2;
   write(fd,&version,1);
-  
-  recursiveWriteModels(root,scene,fd);
+  aiMatrix4x4 ident;
+  recursiveWriteModels(root,scene,fd, ident);
   close(fd);
   
 }
